@@ -43,7 +43,7 @@ import java.util.stream.IntStream;
 public class SpringBatchConfig {
 
     private static final Random RANDOM = new Random();
-    private static final Integer USERS_NUMBER = 10000;
+    private static final Integer USERS_NUMBER = 0;
     private static final Integer PAGE_SIZE = 100;
     private static final Integer CHUNK_SIZE = 10000;
     private final UserRepository userRepository;
@@ -66,7 +66,7 @@ public class SpringBatchConfig {
     public Step insertDatStepOne(JobRepository jobRepository, PlatformTransactionManager transactionManager) {
         return new StepBuilder("insert_data_step_1", jobRepository)
                 .tasklet(dataPrepareTasklet(), transactionManager)
-                .allowStartIfComplete(true)
+//                .allowStartIfComplete(true)
                 .build();
     }
 
@@ -77,7 +77,7 @@ public class SpringBatchConfig {
                 .<UserPrivilegeDto, UserPrivilegeDto>chunk(CHUNK_SIZE, transactionManager)
                 .reader(reader(null))
                 .writer(writer())
-                .allowStartIfComplete(true)
+//                .allowStartIfComplete(true)
                 .build();
     }
 
@@ -107,7 +107,7 @@ public class SpringBatchConfig {
     @Bean
     public FlatFileItemWriter<UserPrivilegeDto> writer() {
         final FlatFileItemWriter<UserPrivilegeDto> writer = new FlatFileItemWriter<>();
-        writer.setResource(new FileSystemResource("user_privilege.csv"));
+        writer.setResource(new FileSystemResource("output/user_privilege.csv"));
         writer.setLineAggregator(getDelimitedLineAggregator());
         writer.setName("user_privilege.csv");
         writer.setHeaderCallback(

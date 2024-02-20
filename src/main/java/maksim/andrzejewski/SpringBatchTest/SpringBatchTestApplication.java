@@ -12,6 +12,9 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.task.SimpleAsyncTaskExecutor;
 
+import java.time.Instant;
+import java.util.Date;
+
 @SpringBootApplication
 public class SpringBatchTestApplication {
 
@@ -32,11 +35,9 @@ public class SpringBatchTestApplication {
 			jobLauncher.setTaskExecutor(new SimpleAsyncTaskExecutor());
 			final JobParameters jobParameters = new JobParametersBuilder()
 					.addString("sortColumnName", "username")
+					.addDate("dateOfExecution", Date.from(Instant.now()))
 					.toJobParameters();
 			jobLauncher.run(testJob, jobParameters);
-
-//			userRepository.findAll().stream()
-//					.forEach(user -> System.out.println(user.toString()));
 		};
 	}
 }
