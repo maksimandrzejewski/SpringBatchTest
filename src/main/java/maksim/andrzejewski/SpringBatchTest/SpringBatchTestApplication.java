@@ -34,9 +34,10 @@ public class SpringBatchTestApplication {
 			jobLauncher.afterPropertiesSet();
 			jobLauncher.setTaskExecutor(new SimpleAsyncTaskExecutor());
 			final JobParameters jobParameters = new JobParametersBuilder()
-					.addString("sortColumnName", "username")
+					.addString("sortColumnName", "user_id")
 					.addDate("dateOfExecution", Date.from(Instant.now()))
 					.toJobParameters();
+			jobLauncher.run(testJobJdbc, jobParameters);
 			jobLauncher.run(testJobJpa, jobParameters);
 		};
 	}

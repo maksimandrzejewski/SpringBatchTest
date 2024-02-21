@@ -30,6 +30,12 @@ public class JpaCustomReader implements ItemReader<UserPrivilegeDto> {
             userSlice = userRepository.findAll(PageRequest.of(0, 1));
             currentUser = userSlice.getContent().get(0);
             privilegeIterator = currentUser.getPrivilegeSet().iterator();
+            if (!privilegeIterator.hasNext()) {
+                return UserPrivilegeDto.builder()
+                        .userId(currentUser.getId())
+                        .userName(currentUser.getUsername())
+                        .build();
+            }
         }
 
         if (userSlice.hasNext() || (privilegeIterator != null && privilegeIterator.hasNext())) {

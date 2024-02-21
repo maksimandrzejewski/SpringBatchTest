@@ -45,9 +45,11 @@ import java.util.stream.IntStream;
 public class SpringBatchConfig {
 
     private static final Random RANDOM = new Random();
-    private static final Integer USERS_NUMBER = 10;
-    private static final Integer PAGE_SIZE = 100;
-    private static final Integer CHUNK_SIZE = 10000;
+    private static final Integer USERS_NUMBER = 0;
+    private static final Integer JDBC_PAGE_SIZE = 1000;
+    private static final Integer JDBC_CHUNK_SIZE = 100;
+    private static final Integer JPA_CHUNK_SIZE = 10;
+
     private final UserRepository userRepository;
     private final DataSource dataSource;
     private final UserPrivilegeRowMapper userPrivilegeRowMapper;
@@ -71,8 +73,8 @@ public class SpringBatchConfig {
                            SpringBatchJobListener listener) {
         return new JobBuilder("test_job_jpa", jobRepository)
                 .listener(listener)
-                .start(insertDatStepOne(jobRepository, transactionManager))
-                .next(createCsvStepTwoUsingJPA(jobRepository, transactionManager))
+//                .start(insertDatStepOne(jobRepository, transactionManager))
+                .start(createCsvStepTwoUsingJPA(jobRepository, transactionManager))
                 .build();
     }
 
@@ -87,9 +89,9 @@ public class SpringBatchConfig {
     public Step createCsvStepTwoUsingJdbc(JobRepository jobRepository,
                                           PlatformTransactionManager transactionManager) {
         return new StepBuilder("get_data_by_jdbc_db_and_create_csv_step_2", jobRepository)
-                .<UserPrivilegeDto, UserPrivilegeDto>chunk(CHUNK_SIZE, transactionManager)
+                .<UserPrivilegeDto, UserPrivilegeDto>chunk(JDBC_CHUNK_SIZE, transactionManager)
                 .reader(jdbcReader(null))
-                .writer(writer())
+                .writer(jdbcWriter())
                 .build();
     }
 
@@ -97,9 +99,9 @@ public class SpringBatchConfig {
     public Step createCsvStepTwoUsingJPA(JobRepository jobRepository,
                                           PlatformTransactionManager transactionManager) {
         return new StepBuilder("get_data_by_jpa_and_create_csv_step_2", jobRepository)
-                .<UserPrivilegeDto, UserPrivilegeDto>chunk(CHUNK_SIZE, transactionManager)
+                .<UserPrivilegeDto, UserPrivilegeDto>chunk(JPA_CHUNK_SIZE, transactionManager)
                 .reader(jpaReader())
-                .writer(writer())
+                .writer(jpaWriter())
                 .build();
     }
 
@@ -118,14 +120,14 @@ public class SpringBatchConfig {
         readerBuilder.name("reader_name");
         readerBuilder.dataSource(dataSource);
         readerBuilder.rowMapper(userPrivilegeRowMapper);
-        readerBuilder.pageSize(PAGE_SIZE);
+        readerBuilder.pageSize(JDBC_PAGE_SIZE);
         final Map<String, Order> orderById = new HashMap<>();
         final String sortColumnName = (String) jobParameters.get("sortColumnName");
         System.out.println(sortColumnName);
         orderById.put(sortColumnName, Order.ASCENDING);
         final H2PagingQueryProvider h2PagingQueryProvider = new H2PagingQueryProvider();
         h2PagingQueryProvider.setSelectClause("SELECT user_id, u.USERNAME, p.PRIVILEGE_NAME");
-        h2PagingQueryProvider.setFromClause("from users u join privileges p on p.user_id_fk = u.user_id");
+        h2PagingQueryProvider.setFromClause("from users u left join privileges p on p.user_id_fk = u.user_id");
         h2PagingQueryProvider.setSortKeys(orderById);
         h2PagingQueryProvider.init(dataSource);
         readerBuilder.queryProvider(h2PagingQueryProvider);
@@ -133,9 +135,20 @@ public class SpringBatchConfig {
     }
 
     @Bean
-    public FlatFileItemWriter<UserPrivilegeDto> writer() {
+    public FlatFileItemWriter<UserPrivilegeDto> jdbcWriter() {
         final FlatFileItemWriter<UserPrivilegeDto> writer = new FlatFileItemWriter<>();
-        writer.setResource(new FileSystemResource("output/user_privilege.csv"));
+        writer.setResource(new FileSystemResource("output/test_job_jdbc.csv"));
+        writer.setLineAggregator(getDelimitedLineAggregator());
+        writer.setName("user_privilege.csv");
+        writer.setHeaderCallback(
+                writer1 -> writer1.write("userId;userName;privilegeName")
+        );
+        return writer;
+    }
+    @Bean
+    public FlatFileItemWriter<UserPrivilegeDto> jpaWriter() {
+        final FlatFileItemWriter<UserPrivilegeDto> writer = new FlatFileItemWriter<>();
+        writer.setResource(new FileSystemResource("output/test_job_jpa.csv"));
         writer.setLineAggregator(getDelimitedLineAggregator());
         writer.setName("user_privilege.csv");
         writer.setHeaderCallback(
