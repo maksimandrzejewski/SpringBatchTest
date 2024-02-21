@@ -26,7 +26,7 @@ public class SpringBatchTestApplication {
 
 
 	@Bean
-	public ApplicationRunner configure(JobRepository jobRepository, Job testJob, UserRepository userRepository) {
+	public ApplicationRunner configure(JobRepository jobRepository, Job testJobJdbc, Job testJobJpa) {
 		return env ->
 		{
 			TaskExecutorJobLauncher jobLauncher = new TaskExecutorJobLauncher();
@@ -37,7 +37,7 @@ public class SpringBatchTestApplication {
 					.addString("sortColumnName", "username")
 					.addDate("dateOfExecution", Date.from(Instant.now()))
 					.toJobParameters();
-			jobLauncher.run(testJob, jobParameters);
+			jobLauncher.run(testJobJpa, jobParameters);
 		};
 	}
 }

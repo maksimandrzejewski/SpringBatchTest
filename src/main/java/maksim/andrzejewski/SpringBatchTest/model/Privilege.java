@@ -1,11 +1,9 @@
 package maksim.andrzejewski.SpringBatchTest.model;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.NoArgsConstructor;
-import lombok.ToString;
+import lombok.*;
 
+@Data
 @ToString
 @Builder
 @NoArgsConstructor

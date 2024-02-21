@@ -7,6 +7,7 @@ import maksim.andrzejewski.SpringBatchTest.mapper.UserPrivilegeRowMapper;
 import maksim.andrzejewski.SpringBatchTest.model.Privilege;
 import maksim.andrzejewski.SpringBatchTest.model.User;
 import maksim.andrzejewski.SpringBatchTest.model.dto.UserPrivilegeDto;
+import maksim.andrzejewski.SpringBatchTest.reader.JpaCustomReader;
 import maksim.andrzejewski.SpringBatchTest.repository.UserRepository;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
@@ -15,6 +16,7 @@ import org.springframework.batch.core.job.builder.JobBuilder;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.builder.StepBuilder;
 import org.springframework.batch.core.step.tasklet.Tasklet;
+import org.springframework.batch.item.ItemReader;
 import org.springframework.batch.item.database.JdbcPagingItemReader;
 import org.springframework.batch.item.database.Order;
 import org.springframework.batch.item.database.builder.JdbcPagingItemReaderBuilder;
@@ -43,7 +45,7 @@ import java.util.stream.IntStream;
 public class SpringBatchConfig {
 
     private static final Random RANDOM = new Random();
-    private static final Integer USERS_NUMBER = 0;
+    private static final Integer USERS_NUMBER = 10;
     private static final Integer PAGE_SIZE = 100;
     private static final Integer CHUNK_SIZE = 10000;
     private final UserRepository userRepository;
@@ -52,13 +54,25 @@ public class SpringBatchConfig {
 
 
     @Bean
-    public Job testJob(JobRepository jobRepository,
-                       PlatformTransactionManager transactionManager,
-                       SpringBatchJobListener listener) {
-        return new JobBuilder("test_job", jobRepository)
+    public Job testJobJdbc(JobRepository jobRepository,
+                           PlatformTransactionManager transactionManager,
+                           SpringBatchJobListener listener) {
+        return new JobBuilder("test_job_jdbc", jobRepository)
                 .listener(listener)
                 .start(insertDatStepOne(jobRepository, transactionManager))
-                .next(createCsvStepTwo(jobRepository, transactionManager))
+                .next(createCsvStepTwoUsingJdbc(jobRepository, transactionManager))
+                .build();
+    }
+
+
+    @Bean
+    public Job testJobJpa(JobRepository jobRepository,
+                           PlatformTransactionManager transactionManager,
+                           SpringBatchJobListener listener) {
+        return new JobBuilder("test_job_jpa", jobRepository)
+                .listener(listener)
+                .start(insertDatStepOne(jobRepository, transactionManager))
+                .next(createCsvStepTwoUsingJPA(jobRepository, transactionManager))
                 .build();
     }
 
@@ -66,26 +80,40 @@ public class SpringBatchConfig {
     public Step insertDatStepOne(JobRepository jobRepository, PlatformTransactionManager transactionManager) {
         return new StepBuilder("insert_data_step_1", jobRepository)
                 .tasklet(dataPrepareTasklet(), transactionManager)
-//                .allowStartIfComplete(true)
                 .build();
     }
 
     @Bean
-    public Step createCsvStepTwo(JobRepository jobRepository,
-                                 PlatformTransactionManager transactionManager) {
-        return new StepBuilder("create_csv_step_2", jobRepository)
+    public Step createCsvStepTwoUsingJdbc(JobRepository jobRepository,
+                                          PlatformTransactionManager transactionManager) {
+        return new StepBuilder("get_data_by_jdbc_db_and_create_csv_step_2", jobRepository)
                 .<UserPrivilegeDto, UserPrivilegeDto>chunk(CHUNK_SIZE, transactionManager)
-                .reader(reader(null))
+                .reader(jdbcReader(null))
                 .writer(writer())
-//                .allowStartIfComplete(true)
                 .build();
     }
+
+    @Bean
+    public Step createCsvStepTwoUsingJPA(JobRepository jobRepository,
+                                          PlatformTransactionManager transactionManager) {
+        return new StepBuilder("get_data_by_jpa_and_create_csv_step_2", jobRepository)
+                .<UserPrivilegeDto, UserPrivilegeDto>chunk(CHUNK_SIZE, transactionManager)
+                .reader(jpaReader())
+                .writer(writer())
+                .build();
+    }
+
+    @Bean
+    public ItemReader<UserPrivilegeDto> jpaReader() {
+        return new JpaCustomReader(userRepository);
+    }
+
 
 
     @SneakyThrows
     @Bean
     @StepScope
-    public JdbcPagingItemReader<UserPrivilegeDto> reader(@Value("#{jobParameters}") Map<String, Object> jobParameters) {
+    public JdbcPagingItemReader<UserPrivilegeDto> jdbcReader(@Value("#{jobParameters}") Map<String, Object> jobParameters) {
         final JdbcPagingItemReaderBuilder<UserPrivilegeDto> readerBuilder = new JdbcPagingItemReaderBuilder<>();
         readerBuilder.name("reader_name");
         readerBuilder.dataSource(dataSource);
