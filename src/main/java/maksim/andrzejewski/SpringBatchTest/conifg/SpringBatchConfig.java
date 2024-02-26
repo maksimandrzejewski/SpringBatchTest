@@ -62,7 +62,7 @@ public class SpringBatchConfig {
                 .listener(listener)
                 .start(insertDatStepOne(jobRepository, transactionManager))
                 .next(createCsvStepTwoUsingJdbc(jobRepository, transactionManager))
-                .next(createCsvStepTwoUsingJPA(jobRepository, transactionManager))
+                .next(createCsvStepThreeUsingJPA(jobRepository, transactionManager))
                 .build();
     }
 
@@ -84,8 +84,8 @@ public class SpringBatchConfig {
     }
 
     @Bean
-    public Step createCsvStepTwoUsingJPA(JobRepository jobRepository,
-                                          PlatformTransactionManager transactionManager) {
+    public Step createCsvStepThreeUsingJPA(JobRepository jobRepository,
+                                           PlatformTransactionManager transactionManager) {
         return new StepBuilder("get_data_by_jpa_and_create_csv_step_3", jobRepository)
                 .<UserPrivilegeDto, UserPrivilegeDto>chunk(JPA_CHUNK_SIZE, transactionManager)
                 .reader(jpaReader())
