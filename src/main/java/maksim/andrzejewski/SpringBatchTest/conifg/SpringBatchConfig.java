@@ -45,36 +45,24 @@ import java.util.stream.IntStream;
 public class SpringBatchConfig {
 
     private static final Random RANDOM = new Random();
-    private static final Integer USERS_NUMBER = 0;
+    private static final Integer USERS_NUMBER = 500;
     private static final Integer JDBC_PAGE_SIZE = 1000;
     private static final Integer JDBC_CHUNK_SIZE = 100;
-    private static final Integer JPA_CHUNK_SIZE = 10;
+    private static final Integer JPA_CHUNK_SIZE = 100;
 
     private final UserRepository userRepository;
     private final DataSource dataSource;
     private final UserPrivilegeRowMapper userPrivilegeRowMapper;
 
-
     @Bean
-    public Job testJobJdbc(JobRepository jobRepository,
+    public Job testJob(JobRepository jobRepository,
                            PlatformTransactionManager transactionManager,
                            SpringBatchJobListener listener) {
-        return new JobBuilder("test_job_jdbc", jobRepository)
+        return new JobBuilder("test_job", jobRepository)
                 .listener(listener)
                 .start(insertDatStepOne(jobRepository, transactionManager))
                 .next(createCsvStepTwoUsingJdbc(jobRepository, transactionManager))
-                .build();
-    }
-
-
-    @Bean
-    public Job testJobJpa(JobRepository jobRepository,
-                           PlatformTransactionManager transactionManager,
-                           SpringBatchJobListener listener) {
-        return new JobBuilder("test_job_jpa", jobRepository)
-                .listener(listener)
-//                .start(insertDatStepOne(jobRepository, transactionManager))
-                .start(createCsvStepTwoUsingJPA(jobRepository, transactionManager))
+                .next(createCsvStepTwoUsingJPA(jobRepository, transactionManager))
                 .build();
     }
 
@@ -98,7 +86,7 @@ public class SpringBatchConfig {
     @Bean
     public Step createCsvStepTwoUsingJPA(JobRepository jobRepository,
                                           PlatformTransactionManager transactionManager) {
-        return new StepBuilder("get_data_by_jpa_and_create_csv_step_2", jobRepository)
+        return new StepBuilder("get_data_by_jpa_and_create_csv_step_3", jobRepository)
                 .<UserPrivilegeDto, UserPrivilegeDto>chunk(JPA_CHUNK_SIZE, transactionManager)
                 .reader(jpaReader())
                 .writer(jpaWriter())
@@ -109,8 +97,6 @@ public class SpringBatchConfig {
     public ItemReader<UserPrivilegeDto> jpaReader() {
         return new JpaCustomReader(userRepository);
     }
-
-
 
     @SneakyThrows
     @Bean

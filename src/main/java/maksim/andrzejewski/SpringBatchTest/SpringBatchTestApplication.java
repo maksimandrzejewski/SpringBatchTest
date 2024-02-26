@@ -1,6 +1,5 @@
 package maksim.andrzejewski.SpringBatchTest;
 
-import maksim.andrzejewski.SpringBatchTest.repository.UserRepository;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.JobParameters;
 import org.springframework.batch.core.JobParametersBuilder;
@@ -22,11 +21,8 @@ public class SpringBatchTestApplication {
 		SpringApplication.run(SpringBatchTestApplication.class, args);
 	}
 
-
-
-
 	@Bean
-	public ApplicationRunner configure(JobRepository jobRepository, Job testJobJdbc, Job testJobJpa) {
+	public ApplicationRunner configure(JobRepository jobRepository, Job testJob) {
 		return env ->
 		{
 			TaskExecutorJobLauncher jobLauncher = new TaskExecutorJobLauncher();
@@ -37,8 +33,7 @@ public class SpringBatchTestApplication {
 					.addString("sortColumnName", "user_id")
 					.addDate("dateOfExecution", Date.from(Instant.now()))
 					.toJobParameters();
-			jobLauncher.run(testJobJdbc, jobParameters);
-			jobLauncher.run(testJobJpa, jobParameters);
+			jobLauncher.run(testJob, jobParameters);
 		};
 	}
 }
